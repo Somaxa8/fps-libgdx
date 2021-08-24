@@ -2,6 +2,7 @@ package com.somacode.fps.desktop;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
+import com.somacode.fps.Game;
 
 public class DesktopLauncher {
 	public static void main (String[] arg) {
