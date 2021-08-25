@@ -17,7 +17,7 @@ class InputManager(val camera: Camera) : InputAdapter() {
     var upKey: Int = Keys.Q
     var downKey: Int = Keys.E
     var autoUpdate = true
-    val velocity = 5f
+    val velocity = 50f
     val degreesPerPixel = 0.5f
     val tmp = Vector3()
 

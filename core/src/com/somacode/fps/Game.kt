@@ -50,9 +50,9 @@ class Game : ApplicationAdapter() {
         val modelLoader = G3dModelLoader(jsonReader)
 
         // Load 3d models
-        model = modelLoader.loadModel(Gdx.files.internal("map.g3db"));
+        model = modelLoader.loadModel(Gdx.files.internal("map.g3db"))
         map = ModelInstance(model)
-        map.transform.setToTranslation(0f, 0f, 0f)
+        map.transform.setToTranslation(0f, 100f, 0f)
 
         // Model Builder (Create Box)
         val mb = ModelBuilder()
@@ -61,8 +61,8 @@ class Game : ApplicationAdapter() {
         ball.transform.setToTranslation(0f, 100f, 0f)
 
         // List instances
-        instances.add(map)
         instances.add(ball)
+        instances.add(map)
 
         // Sprite Pointer
         pointer = Sprite(Texture(Gdx.files.internal("pointer.png")))
