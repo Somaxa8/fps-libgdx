@@ -1,91 +1,71 @@
 package com.somacode.fps
 
-import com.badlogic.gdx.Input
-import com.badlogic.gdx.InputProcessor
-import com.badlogic.gdx.graphics.g3d.ModelInstance
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input.*
+import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.utils.IntIntMap
 
 
-class InputManager(val camera: Camera, val ball: ModelInstance) : InputProcessor {
+class InputManager(val camera: Camera) : InputAdapter() {
 
-    private var positionX = 100f
-    private var positionZ = 100f
-    private var positionY = 50f
-
-    private var dragX = 0
-    private var dragY: Int = 0
-    private val rotateSpeed = 0.2f
+    val keys = IntIntMap()
+    var strafeLeftKey: Int = Keys.A
+    var strafeRightKey: Int = Keys.D
+    var forwardKey: Int = Keys.W
+    var backwardKey: Int = Keys.S
+    var upKey: Int = Keys.Q
+    var downKey: Int = Keys.E
+    var autoUpdate = true
+    val velocity = 5f
+    val degreesPerPixel = 0.5f
+    val tmp = Vector3()
 
     override fun keyDown(keycode: Int): Boolean {
-        if (keycode == Input.Keys.LEFT) {
-            positionX -= 100;
-            ball.transform.setToTranslation(positionX, positionY, 0f)
-        }
-        if (keycode == Input.Keys.RIGHT) {
-            positionX += 100;
-            ball.transform.setToTranslation(positionX, positionY, 0f)
-        }
-        if (keycode == Input.Keys.UP) {
-            positionZ -= 100;
-            ball.transform.setToTranslation(positionX, positionY, positionZ)
-        }
-        if (keycode == Input.Keys.DOWN) {
-            positionZ += 100;
-            ball.transform.setToTranslation(positionX, positionY, positionZ)
-        }
-        if (keycode == Input.Keys.SPACE) {
-            positionY += 50f;
-            ball.transform.setToTranslation(positionX, positionY, positionZ)
-        }
-        if (keycode == Input.Keys.SHIFT_LEFT) {
-            positionY -= 50f;
-            ball.transform.setToTranslation(positionX, positionY, positionZ)
-        }
+        keys.put(keycode, keycode)
         return true
     }
 
     override fun keyUp(keycode: Int): Boolean {
+        keys.remove(keycode, 0)
         return true
     }
 
-    override fun keyTyped(character: Char): Boolean {
-        return true
-    }
-
-    override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
-        return true
-    }
-
-    override fun touchUp(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
-        return true
-    }
-
-    override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
-        return true
+    fun update(deltaTime: Float) {
+        if (keys.containsKey(forwardKey)) {
+            tmp.set(camera.perspectiveCamera.direction).nor().scl(deltaTime * velocity)
+            camera.perspectiveCamera.position.add(tmp)
+        }
+        if (keys.containsKey(backwardKey)) {
+            tmp.set(camera.perspectiveCamera.direction).nor().scl(-deltaTime * velocity)
+            camera.perspectiveCamera.position.add(tmp)
+        }
+        if (keys.containsKey(strafeLeftKey)) {
+            tmp.set(camera.perspectiveCamera.direction).crs(camera.perspectiveCamera.up).nor().scl(-deltaTime * velocity)
+            camera.perspectiveCamera.position.add(tmp)
+        }
+        if (keys.containsKey(strafeRightKey)) {
+            tmp.set(camera.perspectiveCamera.direction).crs(camera.perspectiveCamera.up).nor().scl(deltaTime * velocity)
+            camera.perspectiveCamera.position.add(tmp)
+        }
+        if (keys.containsKey(upKey)) {
+            tmp.set(camera.perspectiveCamera.up).nor().scl(deltaTime * velocity)
+            camera.perspectiveCamera.position.add(tmp)
+        }
+        if (keys.containsKey(downKey)) {
+            tmp.set(camera.perspectiveCamera.up).nor().scl(-deltaTime * velocity)
+            camera.perspectiveCamera.position.add(tmp)
+        }
+        if (autoUpdate) camera.perspectiveCamera.update(true)
     }
 
     override fun mouseMoved(screenX: Int, screenY: Int): Boolean {
-        val direction: Vector3 = camera.perspectiveCamera.direction.cpy()
-
-        // rotating on the y axis
-        val x = (dragX - screenX).toFloat()
-
-        // change this Vector3.y with cam.up if you have a dynamic up.
-        camera.perspectiveCamera.rotate(Vector3.Y, x * rotateSpeed)
-
-        // rotating on the x and z axis is different
-        val y = Math.sin((dragY - screenY).toDouble() / 180f).toFloat()
-        if (Math.abs(camera.perspectiveCamera.direction.y + y * (rotateSpeed * 5.0f)) < 0.9) {
-            camera.perspectiveCamera.direction.y += y * (rotateSpeed * 5.0f)
-        }
-
-        camera.perspectiveCamera.update()
-        dragX = screenX
-        dragY = screenY
+        val deltaX = -Gdx.input.deltaX * degreesPerPixel
+        val deltaY = -Gdx.input.deltaY * degreesPerPixel
+        camera.perspectiveCamera.direction.rotate(camera.perspectiveCamera.up, deltaX)
+        tmp.set(camera.perspectiveCamera.direction).crs(camera.perspectiveCamera.up).nor()
+        camera.perspectiveCamera.direction.rotate(tmp, deltaY)
         return true
     }
 
-    override fun scrolled(amountX: Float, amountY: Float): Boolean {
-        return true
-    }
 }

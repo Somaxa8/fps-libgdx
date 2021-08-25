@@ -23,7 +23,6 @@ class Game : ApplicationAdapter() {
 
     private lateinit var batch: SpriteBatch
     private lateinit var pointer: Sprite
-
     private lateinit var modelBatch: ModelBatch
     private lateinit var map: ModelInstance
     private lateinit var ball: ModelInstance
@@ -31,9 +30,9 @@ class Game : ApplicationAdapter() {
     private lateinit var box: Model
     private var instances: MutableList<ModelInstance> = mutableListOf()
     private lateinit var camera: Camera
-
     private lateinit var environment: Environment
     private lateinit var inputManager: InputManager
+
 
     override fun create() {
         val width = Gdx.graphics.width.toFloat()
@@ -63,7 +62,7 @@ class Game : ApplicationAdapter() {
 
         // List instances
         instances.add(map)
-//        instances.add(ball)
+        instances.add(ball)
 
         // Sprite Pointer
         pointer = Sprite(Texture(Gdx.files.internal("pointer.png")))
@@ -74,7 +73,7 @@ class Game : ApplicationAdapter() {
         batch = SpriteBatch()
 
         // Input Processor
-        inputManager = InputManager(camera, ball)
+        inputManager = InputManager(camera)
         Gdx.input.inputProcessor = inputManager
         Gdx.input.isCursorCatched = true
     }
@@ -91,10 +90,10 @@ class Game : ApplicationAdapter() {
         val delta: Float = Math.min(1f/30f, Gdx.graphics.deltaTime)
 
         //Camera position
-        val boxPosition = ball.transform.getTranslation(Vector3())
-        boxPosition.x = boxPosition.x + 5f
-        camera.perspectiveCamera.position.set(boxPosition)
-        camera.update(delta)
+//        val boxPosition = ball.transform.getTranslation(Vector3())
+//        boxPosition.x = boxPosition.x + 5f
+//        camera.perspectiveCamera.position.set(boxPosition)
+        inputManager.update(delta)
 
         val direction = Vector2(camera.perspectiveCamera.direction.x, camera.perspectiveCamera.direction.y)
 
