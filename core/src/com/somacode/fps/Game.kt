@@ -6,32 +6,26 @@ import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.VertexAttributes
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.graphics.g3d.*
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
-import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight
-import com.badlogic.gdx.graphics.g3d.loader.G3dModelLoader
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
-import com.badlogic.gdx.math.Vector2
-import com.badlogic.gdx.math.Vector3
-import com.badlogic.gdx.utils.UBJsonReader
+import net.mgsx.gltf.loaders.glb.GLBLoader
+import net.mgsx.gltf.scene3d.lights.DirectionalLightEx
+import net.mgsx.gltf.scene3d.scene.Scene
+import net.mgsx.gltf.scene3d.scene.SceneAsset
+import net.mgsx.gltf.scene3d.scene.SceneManager
+import kotlin.math.min
 
 
 class Game : ApplicationAdapter() {
 
     private lateinit var batch: SpriteBatch
     private lateinit var pointer: Sprite
-    private lateinit var modelBatch: ModelBatch
-    private lateinit var map: ModelInstance
-    private lateinit var ball: ModelInstance
-    private lateinit var model: Model
-    private lateinit var box: Model
-    private var instances: MutableList<ModelInstance> = mutableListOf()
     private lateinit var camera: Camera
-    private lateinit var environment: Environment
     private lateinit var inputManager: InputManager
+    private lateinit var sceneManager: SceneManager
+    private lateinit var sceneAsset: SceneAsset
+    private lateinit var scene: Scene
+    private lateinit var light: DirectionalLightEx
 
 
     override fun create() {
@@ -39,30 +33,19 @@ class Game : ApplicationAdapter() {
         val height = Gdx.graphics.height.toFloat()
         camera = Camera(width, height)
 
-        modelBatch = ModelBatch()
+        // Create Scene
+        sceneAsset = GLBLoader().load(Gdx.files.internal("quake.glb"))
+        scene = Scene(sceneAsset.scene)
 
-        // Environment
-        environment = Environment()
-        environment.set(ColorAttribute(ColorAttribute.AmbientLight, 0.8f, 0.8f, 0.8f, 1f))
-        environment.add(DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f))
+        // Setup Light
+        light = DirectionalLightEx()
+        light.direction.set(1f, -3f, 1f).nor()
+        light.color.set(Color.WHITE)
 
-        val jsonReader = UBJsonReader()
-        val modelLoader = G3dModelLoader(jsonReader)
-
-        // Load 3d models
-        model = modelLoader.loadModel(Gdx.files.internal("map.g3db"))
-        map = ModelInstance(model)
-        map.transform.setToTranslation(0f, 100f, 0f)
-
-        // Model Builder (Create Box)
-        val mb = ModelBuilder()
-        box = mb.createBox(10f, 10f, 10f, Material(ColorAttribute.createDiffuse(Color.GREEN)), VertexAttributes.Usage.Position.toLong())
-        ball = ModelInstance(box)
-        ball.transform.setToTranslation(0f, 100f, 0f)
-
-        // List instances
-        instances.add(ball)
-        instances.add(map)
+        // Add Scenes
+        sceneManager = SceneManager()
+        sceneManager.environment.add(light)
+        sceneManager.addScene(scene)
 
         // Sprite Pointer
         pointer = Sprite(Texture(Gdx.files.internal("pointer.png")))
@@ -87,29 +70,21 @@ class Game : ApplicationAdapter() {
             Gdx.app.exit()
         }
 
-        val delta: Float = Math.min(1f/30f, Gdx.graphics.deltaTime)
+        val delta: Float = min(1f/30f, Gdx.graphics.deltaTime)
 
-        //Camera position
-//        val boxPosition = ball.transform.getTranslation(Vector3())
-//        boxPosition.x = boxPosition.x + 5f
-//        camera.perspectiveCamera.position.set(boxPosition)
         inputManager.update(delta)
 
-        val direction = Vector2(camera.perspectiveCamera.direction.x, camera.perspectiveCamera.direction.y)
+        sceneManager.update(delta)
+        sceneManager.render()
 
-        modelBatch.begin(camera.perspectiveCamera)
-        modelBatch.render(instances, environment)
-        modelBatch.end()
-
-        batch.begin();
-        pointer.draw(batch);
-        batch.end();
+        batch.begin()
+        pointer.draw(batch)
+        batch.end()
     }
 
     override fun dispose() {
-        box.dispose();
-        modelBatch.dispose();
-        model.dispose();
+        sceneManager.dispose()
+        sceneAsset.dispose()
     }
 
 }
