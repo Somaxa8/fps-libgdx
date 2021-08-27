@@ -11,7 +11,7 @@ class Camera(width: Float, height: Float) : Drawable, Updatable {
     val perspectiveCamera: PerspectiveCamera = PerspectiveCamera(75f, width, height)
 
     init {
-        perspectiveCamera.position.set(0f, 0f, -200f)
+        perspectiveCamera.position.set(0f, 0f, 0f)
         perspectiveCamera.lookAt(0f, 0f, 0f)
         perspectiveCamera.near = 0.1f
         perspectiveCamera.far = 600f
