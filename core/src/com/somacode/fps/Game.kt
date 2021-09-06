@@ -3,12 +3,15 @@ package com.somacode.fps
 import com.badlogic.gdx.ApplicationAdapter
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
-import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.*
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import net.mgsx.gltf.loaders.glb.GLBLoader
+import com.badlogic.gdx.graphics.g3d.*
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
+import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.BoxShapeBuilder
+import net.mgsx.gltf.loaders.gltf.GLTFLoader
+import net.mgsx.gltf.scene3d.attributes.PBRColorAttribute
 import net.mgsx.gltf.scene3d.lights.DirectionalLightEx
 import net.mgsx.gltf.scene3d.scene.Scene
 import net.mgsx.gltf.scene3d.scene.SceneAsset
@@ -22,10 +25,14 @@ class Game : ApplicationAdapter() {
     private lateinit var pointer: Sprite
     private lateinit var camera: Camera
     private lateinit var inputManager: InputManager
+
     private lateinit var sceneManager: SceneManager
     private lateinit var sceneAsset: SceneAsset
     private lateinit var scene: Scene
+
     private lateinit var light: DirectionalLightEx
+    private lateinit var modelInstance: ModelInstance
+    private lateinit var model: Model
 
 
     override fun create() {
@@ -34,18 +41,31 @@ class Game : ApplicationAdapter() {
         camera = Camera(width, height)
 
         // Create Scene
-        sceneAsset = GLBLoader().load(Gdx.files.internal("quake.glb"))
+        sceneAsset = GLTFLoader().load(Gdx.files.internal("quake.gltf"))
         scene = Scene(sceneAsset.scene)
+
+        // Model Builder (Create Box)
+        val mb = ModelBuilder()
+        model = mb.createCylinder(4f, 8f, 4f, 16, Material(ColorAttribute.createDiffuse(Color.GREEN)), VertexAttributes.Usage.Position.toLong() or VertexAttributes.Usage.Normal.toLong())
+        modelInstance = ModelInstance(model)
+        modelInstance.transform.setToTranslation(18f, 0f, -100f)
 
         // Setup Light
         light = DirectionalLightEx()
-        light.direction.set(1f, -3f, 1f).nor()
+        light.direction.set(2f, -3f, 4f).nor()
         light.color.set(Color.WHITE)
 
         // Add Scenes
         sceneManager = SceneManager()
+        //Light
+        sceneManager.setAmbientLight(0.00f)
         sceneManager.environment.add(light)
+        //Scene
         sceneManager.addScene(scene)
+        sceneManager.renderableProviders.add(modelInstance)
+        //Camera
+        sceneManager.setCamera(camera.perspectiveCamera)
+
 
         // Sprite Pointer
         pointer = Sprite(Texture(Gdx.files.internal("pointer.png")))
@@ -72,6 +92,7 @@ class Game : ApplicationAdapter() {
 
         val delta: Float = min(1f/30f, Gdx.graphics.deltaTime)
 
+        camera.perspectiveCamera.update()
         inputManager.update(delta)
 
         sceneManager.update(delta)
