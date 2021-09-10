@@ -3,15 +3,21 @@ package com.somacode.fps
 import com.badlogic.gdx.ApplicationAdapter
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
-import com.badlogic.gdx.graphics.*
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.VertexAttributes
 import com.badlogic.gdx.graphics.g2d.Sprite
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.graphics.g3d.*
+import com.badlogic.gdx.graphics.g3d.Material
+import com.badlogic.gdx.graphics.g3d.Model
+import com.badlogic.gdx.graphics.g3d.ModelInstance
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder
-import com.badlogic.gdx.graphics.g3d.utils.shapebuilders.BoxShapeBuilder
+import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.physics.bullet.Bullet
+import com.badlogic.gdx.physics.bullet.collision.*
 import net.mgsx.gltf.loaders.gltf.GLTFLoader
-import net.mgsx.gltf.scene3d.attributes.PBRColorAttribute
 import net.mgsx.gltf.scene3d.lights.DirectionalLightEx
 import net.mgsx.gltf.scene3d.scene.Scene
 import net.mgsx.gltf.scene3d.scene.SceneAsset
@@ -31,11 +37,21 @@ class Game : ApplicationAdapter() {
     private lateinit var scene: Scene
 
     private lateinit var light: DirectionalLightEx
-    private lateinit var modelInstance: ModelInstance
-    private lateinit var model: Model
+    private lateinit var playerInstance: ModelInstance
+    private lateinit var playerModel: Model
+
+    private lateinit var playerShape: btCollisionShape
+    private lateinit var mapShape: btCollisionShape
+    private lateinit var playerObject: btCollisionObject
+    private lateinit var mapObject: btCollisionObject
+    private lateinit var collisionConfig: btCollisionConfiguration
+    private lateinit var dispatcher: btDispatcher
+    private var collision: Boolean = false
 
 
     override fun create() {
+        Bullet.init()
+
         val width = Gdx.graphics.width.toFloat()
         val height = Gdx.graphics.height.toFloat()
         camera = Camera(width, height)
@@ -46,9 +62,24 @@ class Game : ApplicationAdapter() {
 
         // Model Builder (Create Box)
         val mb = ModelBuilder()
-        model = mb.createCylinder(4f, 8f, 4f, 16, Material(ColorAttribute.createDiffuse(Color.GREEN)), VertexAttributes.Usage.Position.toLong() or VertexAttributes.Usage.Normal.toLong())
-        modelInstance = ModelInstance(model)
-        modelInstance.transform.setToTranslation(18f, 0f, -100f)
+        playerModel = mb.createCylinder(4f, 8f, 4f, 16, Material(ColorAttribute.createDiffuse(Color.GREEN)), VertexAttributes.Usage.Position.toLong() or VertexAttributes.Usage.Normal.toLong())
+        playerInstance = ModelInstance(playerModel)
+        playerInstance.transform.setToTranslation(18f, 25f, -100f)
+
+        // Bullet
+//        playerShape = btBoxShape(Vector3(2.5f, 0.5f, 2.5f))
+        playerShape = btSphereShape(0.5f)
+        playerObject = btCollisionObject()
+//        playerObject.setCustomDebugColor()
+        playerObject.collisionShape = playerShape
+        playerObject.worldTransform = playerInstance.transform
+
+        mapObject = btCollisionObject()
+        mapObject.collisionShape = Bullet.obtainStaticNodeShape(scene.modelInstance.nodes)
+        mapObject.worldTransform = scene.modelInstance.transform
+
+        collisionConfig = btDefaultCollisionConfiguration()
+        dispatcher = btCollisionDispatcher(collisionConfig)
 
         // Setup Light
         light = DirectionalLightEx()
@@ -62,7 +93,7 @@ class Game : ApplicationAdapter() {
         sceneManager.environment.add(light)
         //Scene
         sceneManager.addScene(scene)
-        sceneManager.renderableProviders.add(modelInstance)
+        sceneManager.renderableProviders.add(playerInstance)
         //Camera
         sceneManager.setCamera(camera.perspectiveCamera)
 
@@ -81,6 +112,31 @@ class Game : ApplicationAdapter() {
         Gdx.input.isCursorCatched = true
     }
 
+    fun checkCollision(): Boolean {
+        val co0 = CollisionObjectWrapper(playerObject)
+        val co1 = CollisionObjectWrapper(mapObject)
+
+        val ci = btCollisionAlgorithmConstructionInfo()
+        ci.dispatcher1 = dispatcher
+        val algorithm = btSphereBoxCollisionAlgorithm(null, ci, co0.wrapper, co1.wrapper, false)
+
+        val info = btDispatcherInfo()
+        val result = btManifoldResult(co0.wrapper, co1.wrapper)
+
+        algorithm.processCollision(co0.wrapper, co1.wrapper, info, result)
+
+        val r = result.persistentManifold.numContacts > 0
+
+        result.dispose()
+        info.dispose()
+        algorithm.dispose()
+        ci.dispose()
+        co1.dispose()
+        co0.dispose()
+
+        return r
+    }
+
     override fun render() {
         Gdx.gl.glViewport(0, 0, Gdx.graphics.width, Gdx.graphics.height)
         Gdx.gl.glClearColor(0.2f, 0.2f, 0.2f, 0f)
@@ -91,6 +147,13 @@ class Game : ApplicationAdapter() {
         }
 
         val delta: Float = min(1f/30f, Gdx.graphics.deltaTime)
+
+        if (!collision) {
+            playerInstance.transform.translate(0f, -delta, 0f)
+            playerObject.worldTransform = playerInstance.transform
+
+            collision = checkCollision()
+        }
 
         camera.perspectiveCamera.update()
         inputManager.update(delta)
@@ -106,6 +169,10 @@ class Game : ApplicationAdapter() {
     override fun dispose() {
         sceneManager.dispose()
         sceneAsset.dispose()
+        playerObject.dispose()
+        playerShape.dispose()
+        dispatcher.dispose()
+        collisionConfig.dispose()
     }
 
 }
